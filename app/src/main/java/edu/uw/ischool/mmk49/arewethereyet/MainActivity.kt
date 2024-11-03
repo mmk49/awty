@@ -1,5 +1,6 @@
 package edu.uw.ischool.mmk49.arewethereyet
 
+import android.content.Intent
 import android.os.Bundle
 import android.telephony.PhoneNumberFormattingTextWatcher
 import android.widget.Button
@@ -12,6 +13,7 @@ import androidx.core.view.WindowInsetsCompat
 
 class MainActivity : AppCompatActivity() {
     var validated = false
+    var serviceActive = false
     lateinit var messageText: TextView
     lateinit var phoneText: TextView
     lateinit var intervalText: TextView
@@ -34,8 +36,23 @@ class MainActivity : AppCompatActivity() {
         sendBtn.setOnClickListener {
             validated = validate()
             if(validated) {
-                sendBtn.text = "Stop"
-                Toast.makeText(this, getString(R.string.send_toast, phoneText.text, messageText.text), Toast.LENGTH_SHORT).show()
+                val interval = intervalText.text.toString().toLongOrNull()?.times(60000) ?: 600000L
+                if(!serviceActive) {
+                    val intent = Intent(this, MessageService::class.java)
+                    intent.putExtra("interval", interval)
+                    intent.putExtra("phone", phoneText.text.toString())
+                    intent.putExtra("message", messageText.text.toString())
+                    intent.action =  MessageService.Action.START.toString()
+                    startService(intent)
+                    sendBtn.text = "Stop"
+                    serviceActive = true
+                } else {
+                    val intent = Intent(this, MessageService::class.java)
+                    intent.action = MessageService.Action.STOP.toString()
+                    startService(intent)
+                    sendBtn.text = "Start"
+                    serviceActive = false
+                }
             }
         }
     }
